@@ -1,0 +1,24 @@
+{
+  "name": "filesort",
+  "version": "0.0.0",
+  "description": "Utility function to sort files into sub-directories",
+  "main": "filesort.js",
+  "dependencies": {
+    "async": "^0.9.0",
+    "underscore": "^1.7.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/glidetim/PicOrg.git"
+  },
+  "author": "Tim Villanueva",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/glidetim/PicOrg/issues"
+  },
+  "homepage": "https://github.com/glidetim/PicOrg"
+}
