@@ -22,6 +22,11 @@
 // --picdir <relative path based on the base directory in the source code below (argv.picdir)
 // -m  indicates move files instead of copying (file is moved, and does not remain in original directory). Default is to copy.
 // -f  indicates to overwrite existing files of the same name.  Default is to not copy over existing files with the same name.
+//
+//
+// Tests
+// NODE_ENV='test' mocha test/filesort_test.js --reporter spec
+//
 
 
 var fs = require("fs.extra");
@@ -31,6 +36,7 @@ var async = require("async");
 var moment = require("moment");
 var argv = require("minimist")(process.argv.slice(2));
 var mv = require("mv");
+var filesortUtil = require("./filesort_util.js");
 
 var ROOTPATH = "C:/Users/Tim/Pictures/TestFileSort";
 var NEW_PATH = "C:/Users/Tim/Pictures/Auto-Organized";
@@ -63,7 +69,7 @@ var STATS = {
 }
 
 // start the party
-checkCreateDirSync(NEW_PATH);
+filesortUtil.checkCreateDirSync(NEW_PATH);
 processDirectory(ROOTPATH);
 var globalTimer = setInterval(checkComplete, 200);
 
@@ -76,7 +82,12 @@ function checkComplete() {
 		console.log("Copying Files...");
 		//
 		// copy files to new directories
-		copyFilesToNewLocation(NEW_PATH, FILE_RECORDS, DO_MOVE, function(err) {
+		var options = {
+			path: NEW_PATH,
+			moveNotCopy: DO_MOVE,
+			forceCopy: FORCE_COPY
+		}
+		filesortUtil.copyFilesToNewLocation(FILE_RECORDS, options, stats, function(err) {
 			if (err) {
 				console.log("A file failed to copy, aborted. ERR=" + err);
 				process.exit(2);
@@ -128,6 +139,7 @@ function _processDirectory(dir, pdCallback) {
 
 	    	var fileObj = {};
 	    	fileObj.fullPath = dir + "/" + file;
+	    	fileObj.file = file;
 
 			fs.stat(fileObj.fullPath, function(err, stats) {
 				if (stats.isDirectory()) {
@@ -142,6 +154,9 @@ function _processDirectory(dir, pdCallback) {
 				} else if (stats.isFile()) {
 					fileObj.year = moment(stats.mtime).format("YYYY");
 					fileObj.month = moment(stats.mtime).format("MMMM");
+					// if the filename contains the date, use it instead of
+					// the stats since it may not reflect the actual picture take date
+					filesortUtil.validateAgainstFilename(fileObj);
 					callback(null, fileObj);
 					return;
 				} else {
@@ -153,84 +168,4 @@ function _processDirectory(dir, pdCallback) {
 	    	pdCallback(err, results)
 	    });
 	});
-}	
-
-// doMove means mv, not cp
-//
-function copyFilesToNewLocation(path, files, doMove, cfCallback) {
-
-	// loop through all files, and copy from old location (stored in file record) to 
-	// new location which is path/year/month.  Check for existence of directory to create it
-	// if needed
-			
-
-	function postProcess(fullPath, err, callback) {
-		if (err) {
-			console.log(fullPath + " :: " + err);
-			STATS.notCopied++;
-		} else {
-			STATS.copied++;
-		}
-		callback(err);
-		return;
-	}
-
-	var q = async.queue(function(task, callback) {
-
-		checkCreateDirSync(task.yearDir);
-		checkCreateDirSync(task.monthDir);
-		process.stdout.write (".");
-
-		if (doMove) {
-			mv(task.file.fullPath, task.monthDir + task.filename, {mkdirp:true, clobber:FORCE_COPY}, function(err) {
-				return postProcess(task.file.fullPath, err, callback);
-			});
-		} else {
-			fs.copy(task.file.fullPath, task.monthDir + task.filename, function(err) {
-				return postProcess(task.file.fullPath, err, callback);
-			});
-		};
-
-	}, 100);
-
-	q.drain = function() {
-		cfCallback(null);
-	}
-
-	files.forEach(function(file) {
-		// ignore null entries
-		if (file) {
-
-			var yearDir = path + "/" + file.year;
-			var monthDir = yearDir + "/" + file.month;
-			var filename = file.fullPath.slice(file.fullPath.lastIndexOf("/"));
-			var jobObject = {
-				yearDir: yearDir,
-				monthDir: monthDir,
-				filename: filename,
-				file: file
-			};
-
-			q.push(jobObject, function(err) {
-
-			});
-		}
-	});
-}
-
-
-function checkCreateDirSync(path) {
-
-	try {
-		return fs.statsSync(path).isDirectory();
-	} catch(e) {
-		//
-		// create the directory
-		try {
-			return fs.mkdirSync(path);
-		} catch(e) {
-			return false;
-		}	
-	}	
-
 }
