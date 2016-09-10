@@ -38,8 +38,8 @@ var argv = require("minimist")(process.argv.slice(2));
 var mv = require("mv");
 var filesortUtil = require("./filesort_util.js");
 
-var ROOTPATH = "C:/Users/Tim/Pictures/TestFileSort";
-var NEW_PATH = "C:/Users/Tim/Pictures/Auto-Organized";
+var ROOTPATH = null;
+var NEW_PATH = null;
 var DO_MOVE = false;
 var FORCE_COPY = false;
 
@@ -68,6 +68,11 @@ var STATS = {
 	notCopied: 0
 }
 
+if (!ROOTPATH || !NEW_PATH) {
+	console.log("Must specify both --srcdir and --destdir");
+	process.exit(1);
+}
+
 // start the party
 filesortUtil.checkCreateDirSync(NEW_PATH);
 processDirectory(ROOTPATH);
@@ -87,7 +92,7 @@ function checkComplete() {
 			moveNotCopy: DO_MOVE,
 			forceCopy: FORCE_COPY
 		}
-		filesortUtil.copyFilesToNewLocation(FILE_RECORDS, options, stats, function(err) {
+		filesortUtil.copyFilesToNewLocation(FILE_RECORDS, options, STATS, function(err) {
 			if (err) {
 				console.log("A file failed to copy, aborted. ERR=" + err);
 				process.exit(2);

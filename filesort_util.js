@@ -4,6 +4,9 @@
 //
 
 var fs = require("fs.extra");
+var async = require("async");
+var mv = require("mv");
+
 
 function validateAgainstFilename(fileObj) {
 
@@ -82,7 +85,7 @@ function copyFilesToNewLocation(files, options, stats, cfCallback) {
 		// ignore null entries
 		if (file) {
 
-			var yearDir = path + "/" + file.year;
+			var yearDir = options.path + "/" + file.year;
 			var monthDir = yearDir + "/" + file.month;
 			var filename = file.fullPath.slice(file.fullPath.lastIndexOf("/"));
 			var jobObject = {
